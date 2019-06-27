@@ -22,13 +22,14 @@ import cn.qqtheme.framework.widget.WheelView;
  *
  * @author 李玉江[QQ:1032694760]
  * @since 2015/9/29
+ * @param 需要重写泛型T的toString方法作为显示的名称
  */
 public class SinglePicker<T> extends WheelPicker {
     private static final int ITEM_WIDTH_UNKNOWN = -99;
     private List<T> items = new ArrayList<>();
     private List<String> itemStrings = new ArrayList<>();
     private WheelView wheelView;
-    private OnWheelListener onWheelListener;
+    private OnWheelListener<T> onWheelListener;
     private OnItemPickListener<T> onItemPickListener;
     private int selectedItemIndex = 0;
     private String label = "";
@@ -74,6 +75,7 @@ public class SinglePicker<T> extends WheelPicker {
             return;
         }
         this.items = items;
+        itemStrings.clear();
         for (T item : items) {
             itemStrings.add(formatToString(item));
         }
@@ -110,20 +112,24 @@ public class SinglePicker<T> extends WheelPicker {
      */
     public void setItemWidth(int itemWidth) {
         if (null != wheelView) {
-            int width = ConvertUtils.toPx(activity, itemWidth);
-            wheelView.setLayoutParams(new LinearLayout.LayoutParams(width, wheelView.getLayoutParams().height));
+            ViewGroup.LayoutParams params = wheelView.getLayoutParams();
+            params.width = ConvertUtils.toPx(activity, itemWidth);
+            wheelView.setLayoutParams(params);
         } else {
             this.itemWidth = itemWidth;
         }
     }
 
     /**
-     * 设置滑动监听器
+     * 设置滑动过程监听器
      */
-    public void setOnWheelListener(OnWheelListener onWheelListener) {
+    public void setOnWheelListener(OnWheelListener<T> onWheelListener) {
         this.onWheelListener = onWheelListener;
     }
 
+    /**
+     * 设置确认选择监听器
+     */
     public void setOnItemPickListener(OnItemPickListener<T> listener) {
         this.onItemPickListener = listener;
     }
@@ -132,46 +138,39 @@ public class SinglePicker<T> extends WheelPicker {
     @NonNull
     protected View makeCenterView() {
         if (items.size() == 0) {
-            throw new IllegalArgumentException("please initial items at first, can't be empty");
+            throw new IllegalArgumentException("Items can't be empty");
         }
         LinearLayout layout = new LinearLayout(activity);
         layout.setLayoutParams(new ViewGroup.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
         layout.setOrientation(LinearLayout.HORIZONTAL);
         layout.setGravity(Gravity.CENTER);
 
-        wheelView = new WheelView(activity);
-        wheelView.setTextSize(textSize);
-        wheelView.setTextColor(textColorNormal, textColorFocus);
-        wheelView.setLineConfig(lineConfig);
-        wheelView.setOffset(offset);
-        wheelView.setCycleDisable(cycleDisable);
+        wheelView = createWheelView();
         layout.addView(wheelView);
 
         if (TextUtils.isEmpty(label)) {
             wheelView.setLayoutParams(new LinearLayout.LayoutParams(screenWidthPixels, WRAP_CONTENT));
         } else {
             wheelView.setLayoutParams(new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT));
-            TextView labelView = new TextView(activity);
-            labelView.setLayoutParams(new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT));
-            labelView.setTextColor(textColorFocus);
-            labelView.setTextSize(textSize);
+            TextView labelView = createLabelView();
             labelView.setText(label);
             layout.addView(labelView);
         }
 
         wheelView.setItems(itemStrings, selectedItemIndex);
-        wheelView.setOnWheelListener(new WheelView.OnWheelListener() {
+        wheelView.setOnItemSelectListener(new WheelView.OnItemSelectListener() {
             @Override
-            public void onSelected(boolean isUserScroll, int index, String item) {
+            public void onSelected(int index) {
                 selectedItemIndex = index;
                 if (onWheelListener != null) {
-                    onWheelListener.onWheeled(selectedItemIndex, item);
+                    onWheelListener.onWheeled(selectedItemIndex, items.get(index));
                 }
             }
         });
         if (itemWidth != ITEM_WIDTH_UNKNOWN) {
-            int width = ConvertUtils.toPx(activity, itemWidth);
-            wheelView.setLayoutParams(new LinearLayout.LayoutParams(width, wheelView.getLayoutParams().height));
+            ViewGroup.LayoutParams params = wheelView.getLayoutParams();
+            params.width = ConvertUtils.toPx(activity, itemWidth);
+            wheelView.setLayoutParams(params);
         }
         return layout;
     }
@@ -208,9 +207,9 @@ public class SinglePicker<T> extends WheelPicker {
 
     }
 
-    public interface OnWheelListener {
+    public interface OnWheelListener<T> {
 
-        void onWheeled(int index, String item);
+        void onWheeled(int index, T item);
 
     }
 

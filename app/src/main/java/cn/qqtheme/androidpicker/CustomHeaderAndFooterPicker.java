@@ -1,5 +1,8 @@
 package cn.qqtheme.androidpicker;
 
+import android.animation.Animator;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
@@ -8,11 +11,7 @@ import android.view.animation.AccelerateInterpolator;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.github.florent37.viewanimator.AnimationListener;
-import com.github.florent37.viewanimator.ViewAnimator;
-
 import cn.qqtheme.framework.picker.OptionPicker;
-import cn.qqtheme.framework.picker.SinglePicker;
 import cn.qqtheme.framework.widget.WheelView;
 
 /**
@@ -23,7 +22,7 @@ import cn.qqtheme.framework.widget.WheelView;
  * DateTime:2016/1/29 14:47
  * Builder:Android Studio
  */
-public class CustomHeaderAndFooterPicker extends OptionPicker implements SinglePicker.OnWheelListener {
+public class CustomHeaderAndFooterPicker extends OptionPicker implements OptionPicker.OnWheelListener {
     private TextView titleView;
 
     public CustomHeaderAndFooterPicker(Activity activity) {
@@ -31,32 +30,54 @@ public class CustomHeaderAndFooterPicker extends OptionPicker implements SingleP
                 "Java/Android", "PHP/MySQL", "HTML/CSS/JS", "C/C++"
         });
         setSelectedIndex(1);
-        setLineConfig(new WheelView.LineConfig(0.06f));
+        setDividerRatio(WheelView.DividerConfig.FILL);
         setOnWheelListener(this);
     }
 
     @Override
-    public void show() {
-        super.show();
-        ViewAnimator.animate(getRootView())
-                .duration(2000)
-                .interpolator(new AccelerateInterpolator())
-                .slideBottom()
-                .start();
+    protected void showAfter() {
+        View rootView = getRootView();
+        AnimatorSet animatorSet = new AnimatorSet();
+        ObjectAnimator alpha = ObjectAnimator.ofFloat(rootView, "alpha", 0, 1);
+        ObjectAnimator translation = ObjectAnimator.ofFloat(rootView, "translationY", 300, 0);
+        animatorSet.playTogether(alpha, translation);
+        animatorSet.setDuration(1000);
+        animatorSet.setInterpolator(new AccelerateInterpolator());
+        animatorSet.start();
     }
 
     @Override
     public void dismiss() {
-        ViewAnimator.animate(getRootView())
-                .duration(1000)
-                .rollOut()
-                .onStop(new AnimationListener.Stop() {
-                    @Override
-                    public void onStop() {
-                        CustomHeaderAndFooterPicker.super.dismiss();
-                    }
-                })
-                .start();
+        View rootView = getRootView();
+        AnimatorSet animatorSet = new AnimatorSet();
+        ObjectAnimator alpha = ObjectAnimator.ofFloat(rootView, "alpha", 1, 0);
+        ObjectAnimator translation = ObjectAnimator.ofFloat(rootView, "translationX", 0, rootView.getWidth());
+        ObjectAnimator rotation = ObjectAnimator.ofFloat(rootView, "rotation", 0, 120);
+        animatorSet.playTogether(alpha, translation, rotation);
+        animatorSet.setDuration(1000);
+        animatorSet.setInterpolator(new AccelerateInterpolator());
+        animatorSet.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                dismissImmediately();
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+
+            }
+        });
+        animatorSet.start();
     }
 
     @Nullable
@@ -104,6 +125,16 @@ public class CustomHeaderAndFooterPicker extends OptionPicker implements SingleP
         if (titleView != null) {
             titleView.setText(item);
         }
+    }
+
+    @Override
+    public void onSubmit() {
+        super.onSubmit();
+    }
+
+    @Override
+    protected void onCancel() {
+        super.onCancel();
     }
 
 }

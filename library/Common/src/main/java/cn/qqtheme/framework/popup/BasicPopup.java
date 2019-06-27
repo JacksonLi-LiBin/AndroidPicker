@@ -50,7 +50,6 @@ public abstract class BasicPopup<V extends View> implements DialogInterface.OnKe
         contentLayout.setLayoutParams(new ViewGroup.LayoutParams(WRAP_CONTENT, WRAP_CONTENT));
         contentLayout.setFocusable(true);
         contentLayout.setFocusableInTouchMode(true);
-        //contentLayout.setFitsSystemWindows(true);
         dialog = new Dialog(activity);
         dialog.setCanceledOnTouchOutside(true);//触摸屏幕取消窗体
         dialog.setCancelable(true);//按返回键取消窗体
@@ -139,6 +138,10 @@ public abstract class BasicPopup<V extends View> implements DialogInterface.OnKe
         contentLayout.addView(view);
     }
 
+    public void setFitsSystemWindows(boolean flag) {
+        contentLayout.setFitsSystemWindows(flag);
+    }
+
     public void setAnimationStyle(@StyleRes int animRes) {
         Window window = dialog.getWindow();
         if (window != null) {
@@ -146,13 +149,33 @@ public abstract class BasicPopup<V extends View> implements DialogInterface.OnKe
         }
     }
 
-    public void setOnDismissListener(DialogInterface.OnDismissListener onDismissListener) {
-        dialog.setOnDismissListener(onDismissListener);
+    public void setCanceledOnTouchOutside(boolean flag) {
+        dialog.setCanceledOnTouchOutside(flag);
+    }
+
+    public void setCancelable(boolean flag) {
+        dialog.setCancelable(flag);
+    }
+
+    public void setOnDismissListener(final DialogInterface.OnDismissListener onDismissListener) {
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                BasicPopup.this.onDismiss(dialog);
+                onDismissListener.onDismiss(dialog);
+            }
+        });
         LogUtils.verbose(this, "popup setOnDismissListener");
     }
 
-    public void setOnKeyListener(DialogInterface.OnKeyListener onKeyListener) {
-        dialog.setOnKeyListener(onKeyListener);
+    public void setOnKeyListener(final DialogInterface.OnKeyListener onKeyListener) {
+        dialog.setOnKeyListener(new DialogInterface.OnKeyListener() {
+            @Override
+            public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+                BasicPopup.this.onKey(dialog, keyCode, event);
+                return onKeyListener.onKey(dialog, keyCode, event);
+            }
+        });
         LogUtils.verbose(this, "popup setOnKeyListener");
     }
 
@@ -217,11 +240,10 @@ public abstract class BasicPopup<V extends View> implements DialogInterface.OnKe
         return dialog.isShowing();
     }
 
-    @CallSuper
-    public void show() {
+    public final void show() {
         if (isPrepared) {
             dialog.show();
-            LogUtils.verbose(this, "popup show");
+            showAfter();
             return;
         }
         LogUtils.verbose(this, "do something before popup show");
@@ -231,23 +253,31 @@ public abstract class BasicPopup<V extends View> implements DialogInterface.OnKe
         setContentViewAfter(view);
         isPrepared = true;
         dialog.show();
+        showAfter();
+    }
+
+    protected void showAfter() {
         LogUtils.verbose(this, "popup show");
     }
 
     public void dismiss() {
+        dismissImmediately();
+    }
+
+    protected final void dismissImmediately() {
         dialog.dismiss();
         LogUtils.verbose(this, "popup dismiss");
     }
 
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
+    public boolean onBackPress() {
+        dismiss();
         return false;
     }
 
     @Override
     public final boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
-        //noinspection SimplifiableIfStatement
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            return onKeyDown(keyCode, event);
+        if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_BACK) {
+            onBackPress();
         }
         return false;
     }

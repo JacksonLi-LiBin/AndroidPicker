@@ -1,8 +1,10 @@
 package cn.qqtheme.androidpicker;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -54,7 +56,7 @@ public abstract class BaseActivity extends FragmentActivity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         if (Build.VERSION.SDK_INT >= 21) {
             setTheme(android.R.style.Theme_Material_Light_NoActionBar);
-        } else if (Build.VERSION.SDK_INT >= 13) {
+        } else if (Build.VERSION.SDK_INT >= 14) {
             setTheme(android.R.style.Theme_Holo_Light_NoActionBar);
         } else {
             setTheme(android.R.style.Theme_Light_NoTitleBar);
@@ -79,7 +81,7 @@ public abstract class BaseActivity extends FragmentActivity {
         setContentViewBefore();
         setContentView(contentView);
         if (isTranslucentStatusBar()) {
-            StatusBar.translucent(activity, getResources().getColor(R.color.immersion));
+            StatusBarUtil.setTransparent(activity);
         }
         setContentViewAfter(contentView);
         LogUtils.verbose(className + " setContentView after");
@@ -97,6 +99,12 @@ public abstract class BaseActivity extends FragmentActivity {
     public void onBackPressed() {
         super.onBackPressed();
         LogUtils.verbose(className + " onBackPressed");
+        List<Activity> activityList = AppManager.getInstance().getActivities();
+        for (Activity activity : activityList) {
+            if (activity.getClass().getName().equals(getClass().getName())) {
+                activity.finish();
+            }
+        }
     }
 
     @CallSuper
@@ -111,13 +119,6 @@ public abstract class BaseActivity extends FragmentActivity {
     public void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         LogUtils.verbose(className + " onRestoreInstanceState");
-    }
-
-    @CallSuper
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        LogUtils.verbose(className + " onConfigurationChanged");
     }
 
     @CallSuper
@@ -205,6 +206,32 @@ public abstract class BaseActivity extends FragmentActivity {
         super.onLowMemory();
         LogUtils.verbose(className + " onLowMemory");
         AppManager.getInstance().removeActivity(this);
+    }
+    @CallSuper
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        LogUtils.verbose(className + " onConfigurationChanged");
+        if (newConfig.fontScale != 1f) {
+            getResources();
+        }
+    }
+
+    @Override
+    public Resources getResources() {
+        Resources res = super.getResources();
+        //强制字体大小不随系统改变而改变：https://blog.csdn.net/xuxian361/article/details/74909602
+        if (res.getConfiguration().fontScale != 1f) {
+            Configuration newConfig = new Configuration();
+            newConfig.setToDefaults();
+            res.updateConfiguration(newConfig, res.getDisplayMetrics());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                createConfigurationContext(newConfig);
+            } else {
+                res.updateConfiguration(newConfig, res.getDisplayMetrics());
+            }
+        }
+        return res;
     }
 
     protected boolean isTranslucentStatusBar() {

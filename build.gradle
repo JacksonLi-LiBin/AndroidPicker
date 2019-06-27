@@ -3,9 +3,13 @@
 buildscript {
     repositories {
         jcenter()
+        maven {
+            url 'https://dl.google.com/dl/android/maven2/'
+            name 'Google'
+        }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:2.3.3'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
     }
 }
@@ -18,6 +22,10 @@ allprojects {
         jcenter() //bintray的maven库
         mavenCentral() //sonatype的maven库
         mavenLocal() //本地的maven库
+        maven {
+            url 'https://dl.google.com/dl/android/maven2/' //谷歌的maven库
+            name 'Google'
+        }
         maven {
             url "https://www.jitpack.io" //jitpack的maven库
         }
@@ -64,10 +72,13 @@ subprojects {
                 }
 
                 lintOptions {
+                    checkReleaseBuilds false
                     abortOnError false
                 }
 
                 packagingOptions {
+                    doNotStrip '*/mips/*.so'
+                    doNotStrip '*/mips64/*.so'
                     exclude 'META-INF/DEPENDENCIES.txt'
                     exclude 'META-INF/LICENSE.txt'
                     exclude 'META-INF/NOTICE.txt'

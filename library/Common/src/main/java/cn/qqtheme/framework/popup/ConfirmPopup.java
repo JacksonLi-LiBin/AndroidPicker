@@ -10,6 +10,7 @@ import android.support.annotation.StringRes;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -22,27 +23,31 @@ import cn.qqtheme.framework.util.ConvertUtils;
  * @author 李玉江[QQ:1032694760]
  * @since 2015/10/21
  */
+@SuppressWarnings("WeakerAccess")
 public abstract class ConfirmPopup<V extends View> extends BasicPopup<View> {
     protected boolean topLineVisible = true;
-    protected int topLineColor = 0xFFDDDDDD;
-    protected int topLineHeight = 1;//dp
+    protected int topLineColor = 0xFF33B5E5;
+    protected int topLineHeightPixels = 1;//px
     protected int topBackgroundColor = Color.WHITE;
     protected int topHeight = 40;//dp
     protected int topPadding = 15;//dp
+    protected int contentLeftAndRightPadding = 0;//dp
+    protected int contentTopAndBottomPadding = 0;//dp
     protected boolean cancelVisible = true;
     protected CharSequence cancelText = "";
     protected CharSequence submitText = "";
     protected CharSequence titleText = "";
-    protected int cancelTextColor = Color.BLACK;
-    protected int submitTextColor = Color.BLACK;
+    protected int cancelTextColor = 0xFF33B5E5;
+    protected int submitTextColor = 0xFF33B5E5;
     protected int titleTextColor = Color.BLACK;
     protected int pressedTextColor = 0XFF0288CE;
     protected int cancelTextSize = 0;
     protected int submitTextSize = 0;
     protected int titleTextSize = 0;
     protected int backgroundColor = Color.WHITE;
-    private TextView cancelButton, submitButton;
-    private View titleView;
+    protected TextView cancelButton, submitButton;
+    protected View titleView;
+    protected View headerView, centerView, footerView;
 
     public ConfirmPopup(Activity activity) {
         super(activity);
@@ -58,10 +63,10 @@ public abstract class ConfirmPopup<V extends View> extends BasicPopup<View> {
     }
 
     /**
-     * 设置顶部标题栏下划线高度，单位为dp
+     * 设置顶部标题栏下划线高度，单位为px
      */
-    public void setTopLineHeight(int topLineHeight) {
-        this.topLineHeight = topLineHeight;
+    public void setTopLineHeight(int topLineHeightPixels) {
+        this.topLineHeightPixels = topLineHeightPixels;
     }
 
     /**
@@ -90,6 +95,14 @@ public abstract class ConfirmPopup<V extends View> extends BasicPopup<View> {
      */
     public void setTopLineVisible(boolean topLineVisible) {
         this.topLineVisible = topLineVisible;
+    }
+
+    /**
+     * 设置内容上下左右边距（单位为dp）
+     */
+    public void setContentPadding(int leftAndRight, int topAndBottom) {
+        this.contentLeftAndRightPadding = leftAndRight;
+        this.contentTopAndBottomPadding = topAndBottom;
     }
 
     /**
@@ -250,6 +263,14 @@ public abstract class ConfirmPopup<V extends View> extends BasicPopup<View> {
         return submitButton;
     }
 
+    public void setHeaderView(View headerView) {
+        this.headerView = headerView;
+    }
+
+    public void setFooterView(View footerView) {
+        this.footerView = footerView;
+    }
+
     /**
      * @see #makeHeaderView()
      * @see #makeCenterView()
@@ -270,12 +291,28 @@ public abstract class ConfirmPopup<V extends View> extends BasicPopup<View> {
         }
         if (topLineVisible) {
             View lineView = new View(activity);
-            int height = ConvertUtils.toPx(activity, topLineHeight);
-            lineView.setLayoutParams(new LinearLayout.LayoutParams(MATCH_PARENT, height));
+            lineView.setLayoutParams(new LinearLayout.LayoutParams(MATCH_PARENT, topLineHeightPixels));
             lineView.setBackgroundColor(topLineColor);
             rootLayout.addView(lineView);
         }
-        rootLayout.addView(makeCenterView(), new LinearLayout.LayoutParams(MATCH_PARENT, 0, 1.0f));
+        if (centerView == null) {
+            centerView = makeCenterView();
+        }
+        int lr = 0;
+        int tb = 0;
+        if (contentLeftAndRightPadding > 0) {
+            lr = ConvertUtils.toPx(activity, contentLeftAndRightPadding);
+        }
+        if (contentTopAndBottomPadding > 0) {
+            tb = ConvertUtils.toPx(activity, contentTopAndBottomPadding);
+        }
+        centerView.setPadding(lr, tb, lr, tb);
+        ViewGroup vg = (ViewGroup) centerView.getParent();
+        if (vg != null) {
+            //IllegalStateException: The specified child already has a parent
+            vg.removeView(centerView);
+        }
+        rootLayout.addView(centerView, new LinearLayout.LayoutParams(MATCH_PARENT, 0, 1.0f));
         View footerView = makeFooterView();
         if (footerView != null) {
             rootLayout.addView(footerView);
@@ -285,6 +322,9 @@ public abstract class ConfirmPopup<V extends View> extends BasicPopup<View> {
 
     @Nullable
     protected View makeHeaderView() {
+        if (null != headerView) {
+            return headerView;
+        }
         RelativeLayout topButtonLayout = new RelativeLayout(activity);
         int height = ConvertUtils.toPx(activity, topHeight);
         topButtonLayout.setLayoutParams(new RelativeLayout.LayoutParams(MATCH_PARENT, height));
@@ -370,6 +410,9 @@ public abstract class ConfirmPopup<V extends View> extends BasicPopup<View> {
 
     @Nullable
     protected View makeFooterView() {
+        if (null != footerView) {
+            return footerView;
+        }
         return null;
     }
 
